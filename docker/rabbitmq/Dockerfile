@@ -1,0 +1,3 @@
+ARG RABBITMQ_VERSION=3
+
+FROM rabbitmq:${RABBITMQ_VERSION}-management

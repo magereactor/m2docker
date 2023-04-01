@@ -1,0 +1,123 @@
+version: '3.9'
+
+services:
+  m2oswebserver:
+    container_name: m2oswebserver
+    extra_hosts:
+      - dashboard.mageplaza.com:198.199.79.159
+    build:
+      context: docker/webserver
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/webserver/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - m2osbackend
+    networks:
+      magento:
+        aliases:
+          - webserver.magento.docker
+  m2osbackend:
+    container_name: m2osbackend
+    build:
+      context: docker/backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - m2osdatabase
+    networks:
+      magento:
+        aliases:
+          - backend.magento.docker
+  m2osdatabase:
+    container_name: m2osdatabase
+    build:
+      context: docker/database
+      dockerfile: Dockerfile
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=NX)Nh$8zx)wgn^24
+      - MYSQL_USER=magento
+      - MYSQL_PASSWORD=admin123
+      - MYSQL_DATABASE=opensource
+    volumes:
+      - m2osmysql:/var/lib/mysql
+    networks:
+      magento:
+        aliases:
+          - database.magento.docker
+  m2osphpmyadmin:
+    container_name: m2osphpmyadmin
+    image: phpmyadmin/phpmyadmin
+    platform: linux/amd64
+    restart: always
+    environment:
+      - PMA_HOST=database
+    ports:
+      - "3010:80"
+    networks:
+      magento:
+        aliases:
+            - phpmyadmin.magento.docker
+    depends_on:
+      - m2osdatabase
+  m2osmailhog:
+    container_name: m2osmailhog
+    image: mailhog/mailhog
+    platform: linux/amd64
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    logging:
+      driver: 'none'
+    networks:
+      magento:
+        aliases:
+            - mailhog.magento.docker
+  m2osrabbitmq:
+    container_name: m2osrabbitmq
+    build:
+      context: docker/rabbitmq
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    ports:
+      - "8080:15672"
+      - "5672:5672"
+    networks:
+      magento:
+        aliases:
+          - rabbitmq.magento.docker
+    depends_on:
+      - m2oswebserver
+  m2oselasticsearch:
+    container_name: m2oselasticsearch
+    image: elasticsearch:8.5.3
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      magento:
+        aliases:
+          - elasticsearch.magento.docker
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    environment:
+      - cluster.name=es-magento-docker
+      - node.name=node1
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+
+networks:
+  magento:
+    driver: bridge
+volumes:
+  m2osmysql:

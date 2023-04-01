@@ -1,0 +1,7 @@
+.DS_Store
+.idea
+src/
+docker/backend/php.ini
+docker/backend/run.sh
+docker/webserver/nginx.copy.conf
+docker/webserver/nginx.sample.conf
